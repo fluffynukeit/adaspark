@@ -48,26 +48,50 @@
 					--prefix=$prefix 
 				'';
 			};
-		xmlada = 
+		packages.x86_64-linux.xmlada = 
 			adaenv.mkDerivation {
 				name = "xmlada";
 				buildInputs = [ 
-					which
 					gprbuildboot
 				];
 				src = xmladasrc;
+				# disable-shared needed to avoid crti.o linking error. Why?
 				configurePhase = ''
-					./configure --prefix=$prefix --disable-shared
+					./configure --prefix=$prefix
 				'';
 				buildPhase = ''
-					make all install
+					make static static-pic
+				'';
+				installPhase = ''
+					make install-static install-static-pic
+				'';
+			};
+		packages.x86_64-linux.gprbuild =
+			adaenv.mkDerivation {
+				name = "gprbuild";
+				buildInputs = [
+					packages.x86_64-linux.xmlada
+					gprbuildboot
+				];
+				srcs = [ 
+					gprbuildsrc
+					xmladasrc
+					gprconfig_kbsrc
+				];
+				sourceRoot = "gprbuild";
+				GPR_PROJECT_PATH=packages.x86_64-linux.xmlada + "/share/gpr";
+				configurePhase = ''
+					make prefix=$prefix ENABLE_SHARED=no setup
+				'';
+				buildPhase = ''
+					make all
 				'';
 			};
 
 
 		packages.x86_64-linux.spark2014 = 
 			with import nixpkgs { system = "x86_64-linux"; };
-			stdenv.mkDerivation rec {
+			adaenv.mkDerivation rec {
 				name = "SPARK2014";
 				buildInputs = [ 
 					ocaml
@@ -80,7 +104,6 @@
 					ocamlPackages.num
 					python38
 					python38Packages.sphinx
-					gnat10
 				];
 				sparksrc = fetchgit {
 						url = "https://github.com/AdaCore/spark2014.git";
@@ -88,7 +111,7 @@
 						deepClone = true;
 						sha256 ="sha256-C/R1RCc/TIJXudTcPk5ArbBSPv5/65lPGQWXz6/vqhk";
 				};
-				gnatsrc = gnat10.cc.src;
+				gnatsrc = adaenv.cc.src;
 				srcs = [
 					sparksrc
 					gnatsrc
@@ -97,7 +120,7 @@
 				configurePhase = "ln -sf ../../gcc-10.2.0 gnat2why/gnat_src && make setup";
 			};
 
-		defaultPackage.x86_64-linux = self.xmlada;
+		defaultPackage.x86_64-linux = packages.x86_64-linux.gprbuild;
 	};
 }
 
