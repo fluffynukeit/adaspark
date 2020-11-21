@@ -5,7 +5,7 @@
 	outputs = { self, nixpkgs }: 
 		with import nixpkgs { 
 			system = "x86_64-linux"; 
-		}; rec {
+		}; let
 
 		gprbuildsrc = fetchgit {
 			url = "https://github.com/AdaCore/gprbuild.git";
@@ -22,14 +22,11 @@
 			rev = "refs/tags/v21.0.0";
 			sha256 = "sha256-7/ZbFOtMQzrajnFNl7lfgMTEcIsSikloh/VG0Jr7FYc=";
 		};
-		adaenv = overrideCC gcc10Stdenv gnat10;
+		adaenv = gcc10Stdenv.override { name="adaenv"; cc = gnat10; };
 
 		gprbuildboot = 
 			adaenv.mkDerivation {
 				name = "gprbuildboot";
-				buildInputs = [ 
-					which
-				];
 				srcs = [ 
 					gprbuildsrc
 					xmladasrc
@@ -48,6 +45,10 @@
 					--prefix=$prefix 
 				'';
 			};
+
+		in rec {
+		packages.x86_64-linux.gprbuildboot = gprbuildboot;
+
 		packages.x86_64-linux.xmlada = 
 			adaenv.mkDerivation {
 				name = "xmlada";
@@ -60,10 +61,10 @@
 					./configure --prefix=$prefix
 				'';
 				buildPhase = ''
-					make static static-pic
+					make all
 				'';
 				installPhase = ''
-					make install-static install-static-pic
+					make install
 				'';
 			};
 		packages.x86_64-linux.gprbuild =
