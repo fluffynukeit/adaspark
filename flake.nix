@@ -24,9 +24,9 @@
 		};
 		adaenv = gcc10Stdenv.override { name="adaenv"; cc = gnat10; };
 
-		gprbuildboot = 
+		gprbuild-bootstrap = 
 			adaenv.mkDerivation {
-				name = "gprbuildboot";
+				name = "gprbuild-bootstrap";
 				srcs = [ 
 					gprbuildsrc
 					xmladasrc
@@ -47,18 +47,18 @@
 			};
 
 		in rec {
-		packages.x86_64-linux.gprbuildboot = gprbuildboot;
+		packages.x86_64-linux.gprbuild-bootstrap = gprbuild-bootstrap;
 
 		packages.x86_64-linux.xmlada = 
 			adaenv.mkDerivation {
 				name = "xmlada";
 				buildInputs = [ 
-					gprbuildboot
+					gprbuild-bootstrap
 				];
 				src = xmladasrc;
-				# disable-shared needed to avoid crti.o linking error. Why?
+				LIBRARY_PATH="${adaenv.glibc}/lib"; # to fix crti.o linker errors
 				configurePhase = ''
-					./configure --prefix=$prefix
+					./configure --prefix=$prefix BUILD_TYPE=Production
 				'';
 				buildPhase = ''
 					make all
@@ -72,7 +72,8 @@
 				name = "gprbuild";
 				buildInputs = [
 					packages.x86_64-linux.xmlada
-					gprbuildboot
+					gprbuild-bootstrap
+					which
 				];
 				srcs = [ 
 					gprbuildsrc
@@ -81,11 +82,17 @@
 				];
 				sourceRoot = "gprbuild";
 				GPR_PROJECT_PATH=packages.x86_64-linux.xmlada + "/share/gpr";
+				LIBRARY_PATH=packages.x86_64-linux.xmlada.LIBRARY_PATH;	
 				configurePhase = ''
-					make prefix=$prefix ENABLE_SHARED=no setup
+					make prefix=$prefix BUILD=production setup
 				'';
 				buildPhase = ''
 					make all
+				'';
+				installPhase = ''
+					make install
+					mkdir -p $out/share/gprconfig
+					cp ${gprconfig_kbsrc}/db/* $out/share/gprconfig/
 				'';
 			};
 
