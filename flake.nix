@@ -7,6 +7,9 @@
 			system = "x86_64-linux"; 
 		}; let
 
+		python = python38;
+		pythonPackages = python38Packages;
+
 		# Customized environment supporting gprbuild search paths.
 
 		base_env = gcc10Stdenv;
@@ -18,7 +21,9 @@
 			in 
 			core // { # use modified mkDerivation function
 					mkDerivation = params :
-						let new_params = params // {
+						assert lib.asserts.assertMsg (params ? name) 
+							"Attribute 'name' of derivation must be specified!"; let
+						new_params = params // {
 							# Fix crti.o linker error
 							LIBRARY_PATH = params.LIBRARY_PATH or "${adaenv.glibc}/lib";
 							# Find installed gpr projects in nix store.
@@ -38,12 +43,13 @@
 
 		xmlada = adaenv.mkDerivation {
 			name = "xmlada";
+			version = "21.0.0";
 			buildInputs = [ 
 				gprbuild-bootstrap
 			];
 			src = xmladasrc;
 			configurePhase = ''
-				./configure --prefix=$prefix BUILD_TYPE=production
+				./configure --prefix=$prefix --enable-build=Production
 			'';
 			buildPhase = ''
 				make all
@@ -69,6 +75,7 @@
 
 		gprbuild-bootstrap = adaenv.mkDerivation {
 			name = "gprbuild-bootstrap";
+			version = "21.0.0";
 			src = gprbuildsrc;
 			patchPhase = "
 				patchShebangs ./bootstrap.sh
@@ -85,6 +92,7 @@
 
 		gprbuild = adaenv.mkDerivation {
 			name = "gprbuild";
+			version = "21.0.0";
 			buildInputs = [
 				xmlada
 				gprbuild-bootstrap
@@ -95,16 +103,47 @@
 				make prefix=$prefix BUILD=production setup
 			'';
 			buildPhase = ''
-				make all
+				make all libgpr.build
 			'';
 			installPhase = ''
-				make install
+				make install libgpr.install
 				mkdir -p $out/share/gprconfig
 				cp ${gprconfig_kbsrc}/db/* $out/share/gprconfig/
 			'';
 		};
 
+		# gnatcoll-core
+
+		gnatcoll-coresrc = fetchgit {
+			url = "https://github.com/AdaCore/gnatcoll-core.git";
+			rev = "refs/tags/v21.0.0";
+			sha256 = "sha256-D0/dMEYjQ0+0NfgfvlEVUQMTf8SQ9lWeNHm5n5IQ+kk=";
+		};
+
+		gnatcoll-core = adaenv.mkDerivation {
+			name = "gnatcoll-core";
+			version = "21.0.0";
+			buildInputs = [
+				gprbuild
+				xmlada
+				which
+			];
+			src = gnatcoll-coresrc;
+			configurePhase = ''
+				make prefix=$prefix BUILD=PROD setup
+			'';
+		};
+
+
 		# Spark2014 tools
+		sparksrc = fetchgit {
+				url = "https://github.com/AdaCore/spark2014.git";
+				rev = "refs/heads/fsf";
+				deepClone = true; # get submodules
+				sha256 ="sha256-C/R1RCc/TIJXudTcPk5ArbBSPv5/65lPGQWXz6/vqhk";
+		};
+
+		gnatsrc = adaenv.cc.src;
 
 		spark2014 = adaenv.mkDerivation {
 			name = "SPARK2014";
@@ -117,22 +156,18 @@
 				ocamlPackages.ocplib-simplex
 				ocamlPackages.findlib
 				ocamlPackages.num
-				python38
-				python38Packages.sphinx
+				gnatcoll-core
+				python
+				pythonPackages.sphinx
 			];
-			sparksrc = fetchgit {
-					url = "https://github.com/AdaCore/spark2014.git";
-					rev = "refs/heads/fsf";
-					deepClone = true; # get submodules
-					sha256 ="sha256-C/R1RCc/TIJXudTcPk5ArbBSPv5/65lPGQWXz6/vqhk";
-			};
-			gnatsrc = adaenv.cc.src;
-			srcs = [
-				sparksrc
-				gnatsrc
-			];
+			src = sparksrc;
 			sourceRoot = "spark2014";
-			configurePhase = "ln -sf ../../gcc-10.2.0 gnat2why/gnat_src && make setup";
+			configurePhase = ''
+				ln -sf ${gnatsrc} gnat2why/gnat_src && make setup
+			'';
+			installPhase = ''
+				make install-all
+			'';
 		};
 
 		in 
@@ -140,8 +175,9 @@
 		{
 			packages.x86_64-linux.xmlada = xmlada;
 			packages.x86_64-linux.gprbuild = gprbuild;
+			packages.x86_64-linux.gnatcoll-core = gnatcoll-core;
 			packages.x86_64-linux.spark2014 = spark2014;
-			defaultPackage.x86_64-linux = gprbuild;
+			defaultPackage.x86_64-linux = gnatcoll-core;
 		};
 }
 
