@@ -35,9 +35,10 @@
 
 		# xmlada library needed for gprbuild. Built with bootstrap.
 
-		xmladasrc = fetchgit {
-			url = "https://github.com/AdaCore/xmlada.git";
-			rev = "refs/tags/xmlada-21.0.0";
+		xmladasrc = fetchFromGitHub {
+			owner = "AdaCore";
+			repo = "xmlada";
+			rev = "xmlada-21.0.0";
 			sha256 = "sha256-/KvMMLo1l1SEksFM4dGtobqFi2o67VGQtKGkyfaUdAM=";
 		};
 
@@ -61,15 +62,17 @@
 
 		# gprbuild tool
 
-		gprbuildsrc = fetchgit {
-			url = "https://github.com/AdaCore/gprbuild.git";
-			rev = "refs/tags/v21.0.0";
+		gprbuildsrc = fetchFromGitHub {
+			owner = "AdaCore";
+			repo = "gprbuild";
+			rev = "v21.0.0";
 			sha256 = "sha256-0vqwUVtuiAh73ySfIwmok3wG2Y+ETdgG7Nr8vLTi184=";
 		};
 
-		gprconfig_kbsrc = fetchgit {
-			url = "https://github.com/AdaCore/gprconfig_kb.git";
-			rev = "refs/tags/v21.0.0";
+		gprconfig_kbsrc = fetchFromGitHub {
+			owner = "AdaCore";
+			repo = "gprconfig_kb";
+			rev = "v21.0.0";
 			sha256 = "sha256-7/ZbFOtMQzrajnFNl7lfgMTEcIsSikloh/VG0Jr7FYc=";
 		};
 
@@ -94,8 +97,8 @@
 			name = "gprbuild";
 			version = "21.0.0";
 			buildInputs = [
-				xmlada
 				gprbuild-bootstrap
+				xmlada
 				which
 			];
 			src = gprbuildsrc;
@@ -114,9 +117,10 @@
 
 		# gnatcoll-core
 
-		gnatcoll-coresrc = fetchgit {
-			url = "https://github.com/AdaCore/gnatcoll-core.git";
-			rev = "refs/tags/v21.0.0";
+		gnatcoll-coresrc = fetchFromGitHub {
+			owner = "AdaCore";
+			repo = "gnatcoll-core";
+			rev = "v21.0.0";
 			sha256 = "sha256-D0/dMEYjQ0+0NfgfvlEVUQMTf8SQ9lWeNHm5n5IQ+kk=";
 		};
 
@@ -125,8 +129,8 @@
 			version = "21.0.0";
 			buildInputs = [
 				gprbuild
-				xmlada
 				which
+				xmlada
 			];
 			src = gnatcoll-coresrc;
 			configurePhase = ''
@@ -136,17 +140,19 @@
 
 
 		# Spark2014 tools
-		sparksrc = fetchgit {
-				url = "https://github.com/AdaCore/spark2014.git";
-				rev = "refs/heads/fsf";
-				deepClone = true; # get submodules
-				sha256 ="sha256-C/R1RCc/TIJXudTcPk5ArbBSPv5/65lPGQWXz6/vqhk";
+		sparksrc = fetchFromGitHub {
+				owner = "AdaCore";
+				repo = "spark2014";
+				rev = "fsf";
+				sha256 ="sha256-2TGwTQJWsvnFQj5ldRHGVOPHVHoVZOihFi1uA14ZmzE=";
+				fetchSubmodules = true;
 		};
 
-		gnatsrc = adaenv.cc.src;
+		gnatsrc = adaenv.cc.cc.src;
 
 		spark2014 = adaenv.mkDerivation {
 			name = "SPARK2014";
+			version = "fsf";
 			buildInputs = [ 
 				ocaml
 				ocamlPackages.ocamlgraph
@@ -159,11 +165,16 @@
 				gnatcoll-core
 				python
 				pythonPackages.sphinx
+				gprbuild
+				xmlada
 			];
-			src = sparksrc;
-			sourceRoot = "spark2014";
+			srcs = [
+				sparksrc
+				gnatsrc # need to list here to get local uncompressed copy
+			];
+			sourceRoot = "source";
 			configurePhase = ''
-				ln -sf ${gnatsrc} gnat2why/gnat_src && make setup
+				ln -s ../../gcc-10.2.0/gcc/ada gnat2why/gnat_src && make INSTALLDIR=$prefix setup
 			'';
 			installPhase = ''
 				make install-all
@@ -177,7 +188,7 @@
 			packages.x86_64-linux.gprbuild = gprbuild;
 			packages.x86_64-linux.gnatcoll-core = gnatcoll-core;
 			packages.x86_64-linux.spark2014 = spark2014;
-			defaultPackage.x86_64-linux = gnatcoll-core;
+			defaultPackage.x86_64-linux = spark2014;
 		};
 }
 
