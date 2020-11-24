@@ -7,8 +7,8 @@
 			system = "x86_64-linux"; 
 		}; let
 
-		python = python38;
-		pythonPackages = python38Packages;
+		python = python27;
+		pythonPackages = python27Packages;
 
 		# Customized environment supporting gprbuild search paths.
 
@@ -143,8 +143,8 @@
 		sparksrc = fetchFromGitHub {
 				owner = "AdaCore";
 				repo = "spark2014";
-				rev = "fsf";
-				sha256 ="sha256-2TGwTQJWsvnFQj5ldRHGVOPHVHoVZOihFi1uA14ZmzE=";
+				rev = "d846b3d10503db9567a509bff2982366d8caa131"; # 20.2, to match gcc 10.2
+				sha256 = "sha256-SaJ8nGGn21dtHIsE02GslefUaYZG7JX//o7rB+AsndM=";
 				fetchSubmodules = true;
 		};
 
@@ -174,10 +174,12 @@
 			];
 			sourceRoot = "source";
 			configurePhase = ''
-				ln -s ../../gcc-10.2.0/gcc/ada gnat2why/gnat_src && make INSTALLDIR=$prefix setup
+				ln -s ../../gcc-10.2.0/gcc/ada gnat2why/gnat_src \
+				&& make setup
 			'';
 			installPhase = ''
 				make install-all
+				cp -a ./install/. $out
 			'';
 		};
 
