@@ -88,7 +88,6 @@
 			installPhase = ''
 				./bootstrap.sh \
 				--with-xmlada="${xmladasrc}" \
-				--with-kb="${gprconfig_kbsrc}" \
 				--prefix=$prefix 
 			'';
 		};
