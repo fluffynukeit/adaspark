@@ -39,7 +39,7 @@
 			owner = "AdaCore";
 			repo = "xmlada";
 			rev = "4aca7578264b3d42d9629a7437705a3b62c6fa04"; # version 20.2
-			sha256 = "sha256-/KvMMLo1l1SEksFM4dGtobqFi2o67VGQtKGkyfaUdAM=";
+			sha256 = "sha256-aBfhmnbzJxdqdItVM6dn29C5JYE8jMhpBYjYv+RQA40=";
 		};
 
 		xmlada = adaenv.mkDerivation {
@@ -66,14 +66,14 @@
 			owner = "AdaCore";
 			repo = "gprbuild";
 			rev = "245ee13c5cd384dc3cea10a49a5e6a07042e49e1"; # version 20.2
-			sha256 = "sha256-0vqwUVtuiAh73ySfIwmok3wG2Y+ETdgG7Nr8vLTi184=";
+			sha256 = "sha256-wAnDQXyg0vR3TfsKtfvYnDZ1CnX+1ZRRQi7XwOTckNo=";
 		};
 
 		gprconfig_kbsrc = fetchFromGitHub {
 			owner = "AdaCore";
 			repo = "gprconfig_kb";
 			rev = "94abfa8bb8da6457ac0288907a817f691d00f74e"; # version 20.2
-			sha256 = "sha256-7/ZbFOtMQzrajnFNl7lfgMTEcIsSikloh/VG0Jr7FYc=";
+			sha256 = "sha256-S+iH0h50o6HdoSDf+8SQ5Fe3IOf/AGEe46fyfdnKsIk=";
 		};
 
 		gprbuild-bootstrap = adaenv.mkDerivation {
@@ -121,7 +121,7 @@
 			owner = "AdaCore";
 			repo = "gnatcoll-core";
 			rev = "d71d4fce1438dd645c546892a8c8a6a5e65a856d"; # version 20.2
-			sha256 = "sha256-D0/dMEYjQ0+0NfgfvlEVUQMTf8SQ9lWeNHm5n5IQ+kk=";
+			sha256 = "sha256-yEGj9ku3o+BOH8BwA/SuLsLCr/CcWdEdzzdrtOsy1wg=";
 		};
 
 		gnatcoll-core = adaenv.mkDerivation {
