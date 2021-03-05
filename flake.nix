@@ -184,12 +184,33 @@
 
 		in 
 
+    # HERE BEGINS THE THINGS THAT THIS FLAKE PROVIDES:
 		{
-			packages.x86_64-linux.xmlada = xmlada;
-			packages.x86_64-linux.gprbuild = gprbuild;
-			packages.x86_64-linux.gnatcoll-core = gnatcoll-core;
-			packages.x86_64-linux.spark2014 = spark2014;
-			defaultPackage.x86_64-linux = spark2014;
+
+      # Derivations (create an environment with `nix shell`)
+      inherit xmlada gnatcoll-core;
+      gpr = gprbuild;
+      gnat = adaenv.cc;
+      spark = spark2014;
+
+      adaspark = buildEnv {
+        name = "adaspark";
+        paths = [
+          self.gnat
+          self.gpr
+          self.spark
+        ];
+      };
+
+      packages.x86_64-linux = {
+        inherit (self) xmlada gnatcoll-core gnat gpr spark adaspark;
+      };
+      defaultPackage.x86_64-linux = self.packages.x86_64-linux.adaspark;
+
+      # End derivations
+
+      # Convenience entities for building Ada projects in other nix expressions:
+      nix.adaenv = adaenv;
 		};
 }
 
