@@ -20,6 +20,9 @@ It does this by setting `GPR_PROJECT_PATH` to certain nix store locations. `gpr`
 automatically included in the environment and does not need to be specified in the
 `buildInputs`.
 
+Other components are provided but typically aren't needed to be referenced directly in 
+practice.  Consult the flake source for more.
+
 ## Enable flakes in nix
 At the time of this writing, flakes are an experimental feature of nix.  Please consult
 the [flakes wiki entry](https://nixos.wiki/wiki/Flakes) for information on how to enable

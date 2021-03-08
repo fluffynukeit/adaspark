@@ -284,7 +284,7 @@
 
       # Put the adaenv function in the flake so other users can download it and use its
       # mkDerivation function and other features.
-      inherit adaenv;
+      inherit adaenv fetchFromGitHub fetchgit fetchtarball;
 
 		};
 }
