@@ -11,12 +11,14 @@ Ada/C/C++ projects. Includes commands `gprbuild`, `gprls`, etc.
 3. `spark`, the SPARK code verification tools. Includes `gnatprove` and `gnat2why`.
 4. `asis`, the ASIS tools. Includes `gnattest`, `gnatcheck`, `gnat2xml`, `gnat2xsd`, `gnatelim`,
   `gnatmetric`, `gnatpp`, `gnatstub`.
-5. `adaenv`, a nix build environment like nix's stdenv, but modified so that derivations
-that are installed with `gprbuild` as `buildInputs` can be located in the nix store.
-It does this by setting `GPR_PROJECT_PATH` to certain nix store locations.
-6. `adaspark` target that includes 1-4.  This is the default flake output and gives you
+5. `adaspark` target that includes 1-4.  This is the default flake output and gives you
 everything you need to build an Ada project without using the nix build system to 
 package it.
+6. `adaenv`, a nix build environment like nix's stdenv, but modified so that derivations
+that are installed with `gprbuild` as `buildInputs` can be located in the nix store.
+It does this by setting `GPR_PROJECT_PATH` to certain nix store locations. `gpr` is 
+automatically included in the environment and does not need to be specified in the
+`buildInputs`.
 
 ## Enable flakes in nix
 At the time of this writing, flakes are an experimental feature of nix.  Please consult
@@ -36,7 +38,7 @@ you don't care about SPARK and don't want to install it), you can specify indivi
 components of your shell environment: `nix shell github:fluffynukeit/adaspark#{gnat,gpr}`
 
 If you want a "pure" shell with nothing from your own system, add the `-i` flag to the 
-nix command, which will include only those packages (and their dependents) you specify.
+nix command, which will include only those packages (and their dependencies) you specify.
 No installed programs from your own system will be accessible, not even `ls`!
 This is useful for verifying that the dependencies of your projects are all identified.
 

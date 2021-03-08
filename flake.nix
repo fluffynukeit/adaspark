@@ -13,10 +13,13 @@
 		# Customized environment supporting gprbuild search paths.
 
 		base_env = gcc10Stdenv;
-		adaenv = let
+		adaenv_func = include_gprbuild : let
+      maybe_gpr = if include_gprbuild then [gprbuild] else [];
 			core = base_env.override { 
-				name="adaenv"; 
+				name="adaenv" + (if include_gprbuild then "-boot" else "");
 				cc = gnat10; 
+
+        initialPath = base_env.initialPath ++ maybe_gpr;
 			}; 
 			in 
 			core // { # use modified mkDerivation function
@@ -30,13 +33,15 @@
 							# Find installed gpr projects in nix store. Consult
               # GPR manual for search path order
 							GPR_PROJECT_PATH = lib.strings.makeSearchPath "share/gpr" 
-								(new_params.buildInputs or [])
+								((new_params.buildInputs or []) ++ maybe_gpr)
               + ":" +
                 lib.strings.makeSearchPath "lib/gnat"
-                (new_params.buildInputs or []);
+                ((new_params.buildInputs or []) ++ maybe_gpr);
 						};
 				in core.mkDerivation new_params;
 			};
+    adaenv_boot = adaenv_func false; # does not include gprbuild by default
+    adaenv = adaenv_func true; # does include gprbuild by default
 
 		# xmlada library needed for gprbuild. Built with bootstrap.
 
@@ -47,7 +52,7 @@
 			sha256 = "sha256-aBfhmnbzJxdqdItVM6dn29C5JYE8jMhpBYjYv+RQA40=";
 		};
 
-		xmlada = adaenv.mkDerivation {
+		xmlada = adaenv_boot.mkDerivation {
 			name = "xmlada";
 			version = "20.2";
 			buildInputs = [ 
@@ -81,7 +86,7 @@
 			sha256 = "sha256-S+iH0h50o6HdoSDf+8SQ5Fe3IOf/AGEe46fyfdnKsIk=";
 		};
 
-		gprbuild-bootstrap = adaenv.mkDerivation {
+		gprbuild-bootstrap = adaenv_boot.mkDerivation {
 			name = "gprbuild-bootstrap";
 			version = "20.2";
 			src = gprbuildsrc;
@@ -97,7 +102,7 @@
 			'';
 		};
 
-		gprbuild = adaenv.mkDerivation {
+		gprbuild = adaenv_boot.mkDerivation {
 			name = "gprbuild";
 			version = "20.2";
 			buildInputs = [
@@ -132,7 +137,6 @@
 			name = "gnatcoll-core";
 			version = "20.2";
 			buildInputs = [
-				gprbuild
 				xmlada
 			];
 			src = gnatcoll-coresrc;
@@ -168,7 +172,6 @@
 				gnatcoll-core
 				python
 				pythonPackages.sphinx
-				gprbuild
 				xmlada
 			];
 			srcs = [
@@ -196,9 +199,6 @@
     aunit = adaenv.mkDerivation {
       name = "AUnit";
       version = "20.2";
-      buildInputs = [
-        gprbuild
-      ];
       src = aunitsrc;
       installPhase = ''
         make INSTALL=$prefix install
@@ -214,9 +214,6 @@
     gnat_util = adaenv.mkDerivation {
       name = "gnat_util";
       version = "10.1.0";
-      buildInputs = [
-        gprbuild
-      ];
       srcs = [
         gnat_utilsrc
         gnatsrc # list here to get local uncompressed copy
@@ -240,7 +237,6 @@
         # version of gcc used.
       };
       buildInputs = [
-        gprbuild
         xmlada
         aunit
         gnat_util
