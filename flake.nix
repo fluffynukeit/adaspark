@@ -26,9 +26,14 @@
 						new_params = params // {
 							# Fix crti.o linker error
 							LIBRARY_PATH = params.LIBRARY_PATH or "${adaenv.glibc}/lib";
-							# Find installed gpr projects in nix store.
+
+							# Find installed gpr projects in nix store. Consult
+              # GPR manual for search path order
 							GPR_PROJECT_PATH = lib.strings.makeSearchPath "share/gpr" 
-								(new_params.buildInputs or []);
+								(new_params.buildInputs or [])
+              + ":" +
+                lib.strings.makeSearchPath "lib/gnat"
+                (new_params.buildInputs or []);
 						};
 				in core.mkDerivation new_params;
 			};
@@ -128,7 +133,6 @@
 			version = "20.2";
 			buildInputs = [
 				gprbuild
-				which
 				xmlada
 			];
 			src = gnatcoll-coresrc;
@@ -182,13 +186,85 @@
 			'';
 		};
 
+    # ASIS tools like gnattest, gnatcheck, etc.
+    aunitsrc = fetchFromGitHub {
+      owner = "AdaCore";
+      repo = "aunit";
+      rev = "5a4c3255af756177aead3ff89b2278a1a47009e4"; # tag 20.2
+      sha256 = "sha256-45hevx+oUiZLKER3cZF4FHJT5IFOKMKsY7L8u8rDa+E=";
+    };
+    aunit = adaenv.mkDerivation {
+      name = "AUnit";
+      version = "20.2";
+      buildInputs = [
+        gprbuild
+      ];
+      src = aunitsrc;
+      installPhase = ''
+        make INSTALL=$prefix install
+      '';
+    };
+
+    gnat_utilsrc = fetchFromGitHub {
+      owner = "simonjwright";
+      repo = "gnat_util";
+      rev = "7e5af8f4365b49cd39b1e7de5fd3c6eb71b989e2";
+      sha256 = "sha256-Pz2B/W3FRN6zwOk6MXNuHKDa3539/wshZuFDjtrdZ18="; # gcc 10.1.0
+    };
+    gnat_util = adaenv.mkDerivation {
+      name = "gnat_util";
+      version = "10.1.0";
+      buildInputs = [
+        gprbuild
+      ];
+      srcs = [
+        gnat_utilsrc
+        gnatsrc # list here to get local uncompressed copy
+      ];
+      sourceRoot = "source";
+      GCC_SRC_BASE="gcc-10.2.0";
+      installPhase = ''
+        make prefix=$prefix install
+      '';
+    };
+
+    asis = adaenv.mkDerivation {
+      name = "ASIS";
+      version = "gcc-10.1.0";
+      src = fetchFromGitHub {
+        owner = "simonjwright";
+        repo = "asis";
+        rev = "75eabc75aa5f7f1559524153f209601574f32b5c"; # gcc-10.1 tag
+        sha256 = "sha256-26kmPF8uksCOHc5yqJZ8DW7rS56fClff5cIMj0x5+MI=";
+        # The asis distribution must include source code that matches the 
+        # version of gcc used.
+      };
+      buildInputs = [
+        gprbuild
+        xmlada
+        aunit
+        gnat_util
+        gnatcoll-core
+      ];
+      postUnpack = ''
+        make -C source xsetup-snames
+        cp -nr source/gnat/* source/asis/
+      '';
+      buildPhase = ''
+        make all tools
+      '';
+      installPhase = ''
+        make prefix=$prefix install install-tools
+      '';
+    };
+
 		in 
 
     # HERE BEGINS THE THINGS THAT THIS FLAKE PROVIDES:
 		{
 
       # Derivations (create an environment with `nix shell`)
-      inherit xmlada gnatcoll-core;
+      inherit xmlada gnatcoll-core asis gnat_util aunit;
       gpr = gprbuild;
       gnat = adaenv.cc;
       spark = spark2014;
@@ -199,18 +275,21 @@
           self.gnat
           self.gpr
           self.spark
+          self.asis
         ];
       };
 
       packages.x86_64-linux = {
-        inherit (self) xmlada gnatcoll-core gnat gpr spark adaspark;
+        inherit (self) xmlada gnatcoll-core gnat gpr spark adaspark gnat_util aunit asis;
       };
       defaultPackage.x86_64-linux = self.packages.x86_64-linux.adaspark;
 
       # End derivations
 
-      # Convenience entities for building Ada projects in other nix expressions:
-      nix.adaenv = adaenv;
+      # Put the adaenv function in the flake so other users can download it and use its
+      # mkDerivation function and other features.
+      inherit adaenv;
+
 		};
 }
 
