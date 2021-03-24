@@ -30,6 +30,8 @@ them.
 
 ## Quickstart shell
 
+*You do not need to clone this repo to use it.*
+
 On the command line, run `nix shell github:fluffynukeit/adaspark` to build and/or activate
 a command line environment that includes gnat tools, asis tools, gpr, and SPARK. You can
 then use these tools with your own build or development scripts that are executed from
