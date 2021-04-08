@@ -298,6 +298,10 @@
 			inherit (self) xmlada gnatcoll-core gnat gpr spark adaspark gnat_util aunit asis;
 		};
 		defaultPackage.x86_64-linux = self.packages.x86_64-linux.adaspark;
+		devShell.x86_64-linux = mkShell { 
+			buildInputs = [self.adaspark]; 
+			LIBRARY_PATH=self.gpr.LIBRARY_PATH; # pull out any LIBRARY_PATH from a adaenv derivation
+		};
 
 		# End derivations
 

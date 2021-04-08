@@ -32,7 +32,7 @@ them.
 
 *You do not need to clone this repo to use it.*
 
-On the command line, run `nix shell github:fluffynukeit/adaspark` to build and/or activate
+On the command line, run `nix develop github:fluffynukeit/adaspark` to build and/or activate
 a command line environment that includes gnat tools, asis tools, gpr, and SPARK. You can
 then use these tools with your own build or development scripts that are executed from
 the shell environment.  Any other programs already installed on your system will still be 
@@ -40,7 +40,7 @@ accessible.
 
 If you don't want all the components of the built-in `adaspark` environment (for instance,
 you don't care about SPARK and don't want to install it), you can specify individual flake
-components of your shell environment: `nix shell github:fluffynukeit/adaspark#{gnat,gpr}`
+components of your shell environment: `nix develop github:fluffynukeit/adaspark#{gnat,gpr}`
 
 If you want a "pure" shell with nothing from your own system, add the `-i` flag to the 
 nix command, which will include only those packages (and their dependencies) you specify.
