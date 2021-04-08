@@ -15,12 +15,16 @@
 	# Customized environment supporting gprbuild search paths.
 
 	base_env = gcc10Stdenv;
+
+	mk_gpr_path = inputs :
+		lib.strings.makeSearchPath "share/gpr" inputs
+		+ ":" +
+		lib.strings.makeSearchPath "lib/gnat" inputs;
+
 	adaenv_func = include_gprbuild : let
 		maybe_gpr = if include_gprbuild then [gprbuild] else [];
-		core = base_env.override { 
+		core = (overrideCC base_env gnat10).override { 
 			name="adaenv" + (if include_gprbuild then "-boot" else "");
-			cc = gnat10; 
-
 			initialPath = base_env.initialPath ++ maybe_gpr;
 		}; 
 		in 
@@ -35,11 +39,8 @@
 
 				# Find installed gpr projects in nix store. Consult
 				# GPR manual for search path order
-				GPR_PROJECT_PATH = lib.strings.makeSearchPath "share/gpr" 
-					((new_params.buildInputs or []) ++ maybe_gpr)
-					+ ":" +
-					lib.strings.makeSearchPath "lib/gnat"
-					((new_params.buildInputs or []) ++ maybe_gpr);
+				GPR_PROJECT_PATH = mk_gpr_path ((new_params.buildInputs or []) ++ maybe_gpr);
+
 				};
 			in core.mkDerivation new_params;
 		};
@@ -270,10 +271,23 @@
 		gnat = adaenv.cc;
 		spark = spark2014;
 
+		# Notes on nix shell and nix develop:
+		# "nix develop" will open a shell environment that simulates the build environment
+		# for the specified derivation, with default being devShell if it is defined, and
+		# defaultPackage if it is not.  If the the derivation has a shellHook, it will be 
+		# run.  However, buildEnv is not allowed to have a shellHook for some reason.  The 
+		# derivation can be a buildable package (including buildEnv) or not like mkShell.
+		#
+		# "nix shell" will open a shell environment with the specified *packages* installed
+		# on the PATH. The default is defaultPackage.  devShell is not used. shellHooks will 
+		# not be run. A mkShell invocation cannot be installed, so it cannot be used with
+		# nix shell.
+
 		adaspark = buildEnv {
 			name = "adaspark";
 			paths = [
 				self.gnat
+				gnat10.cc # need the original compiler on the path for gprconfig to work
 				self.gpr
 				self.spark
 				self.asis
