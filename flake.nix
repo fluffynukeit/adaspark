@@ -261,29 +261,29 @@
 		'';
 	};
 
-        alire = adaenv.mkDerivation rec {
-          name = "alire";
-          # v1.0.0 failed to fetch submodules, so using current HEAD
-          version = "1.1.0-dev+0f603c29";
-          src = fetchFromGitHub {
-            owner = "alire-project";
-            repo = "alire";
-            rev = "c63615df9bed6212881f61d769ab189b3f425a8b";
-            sha256 = "sha256-bs1myX6Qgsdp/RU9FvOaDJ6nB9gsa0oDsNjwYctP/Dw=";
-            fetchSubmodules = true;
-          };
+	alire = adaenv.mkDerivation rec {
+		name = "alire";
+		# v1.0.0 failed to fetch submodules, so using current HEAD
+		version = "1.1.0-dev+0f603c29";
+		src = fetchFromGitHub {
+			owner = "alire-project";
+			repo = "alire";
+			rev = "c63615df9bed6212881f61d769ab189b3f425a8b";
+			sha256 = "sha256-bs1myX6Qgsdp/RU9FvOaDJ6nB9gsa0oDsNjwYctP/Dw=";
+			fetchSubmodules = true;
+		};
 
-          buildInputs = [ gprbuild git ];
+		buildInputs = [ gprbuild git ];
 
-          buildPhase = ''
-            gprbuild -j0 -P alr_env
-          '';
+		buildPhase = ''
+			gprbuild -j0 -P alr_env
+		'';
 
-          installPhase = ''
-            install -D bin/alr $out/bin/alr
-          '';
+		installPhase = ''
+			install -D bin/alr $out/bin/alr
+		'';
 
-        };
+		};
 
 	in 
 
@@ -294,7 +294,7 @@
 		gpr = gprbuild;
 		gnat = adaenv.cc;
 		spark = spark2014;
-                alr = alire;
+		alr = alire;
 
 		# Notes on nix shell and nix develop:
 		# "nix develop" will open a shell environment that simulates the build environment
@@ -316,7 +316,7 @@
 				self.gpr
 				self.spark
 				self.asis
-                                self.alr
+				self.alr
 			];
 		};
 
