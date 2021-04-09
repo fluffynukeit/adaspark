@@ -11,10 +11,11 @@ Ada/C/C++ projects. Includes commands `gprbuild`, `gprls`, etc.
 3. `spark`, the SPARK code verification tools. Includes `gnatprove` and `gnat2why`.
 4. `asis`, the ASIS tools. Includes `gnattest`, `gnatcheck`, `gnat2xml`, `gnat2xsd`, `gnatelim`,
   `gnatmetric`, `gnatpp`, `gnatstub`.
-5. `adaspark` target that includes 1-4.  This is the default flake output and gives you
+5. `alr`, the Alire package manager.
+6. `adaspark` target that includes 1-5.  This is the default flake output and gives you
 everything you need to build an Ada project without using the nix build system to 
 package it.
-6. `adaenv`, a nix build environment like nix's stdenv, but modified so that derivations
+7. `adaenv`, a nix build environment like nix's stdenv, but modified so that derivations
 that are installed with `gprbuild` as `buildInputs` can be located in the nix store.
 It does this by setting `GPR_PROJECT_PATH` to certain nix store locations. `gpr` is 
 automatically included in the environment and does not need to be specified in the
