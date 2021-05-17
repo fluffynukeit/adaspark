@@ -2,10 +2,10 @@
 	description = "Compilers and tools for SPARK2014 Ada development";
 	inputs.nixpkgs.url = "github:nixos/nixpkgs/20.09";
 
-	outputs = { self, nixpkgs }: 
-		with import nixpkgs { 
-			system = "x86_64-linux"; 
-		}; 
+	outputs = { self, nixpkgs }:
+		with import nixpkgs {
+			system = "x86_64-linux";
+		};
 
 	let
 
@@ -23,14 +23,14 @@
 
 	adaenv_func = include_gprbuild : let
 		maybe_gpr = if include_gprbuild then [gprbuild] else [];
-		core = (overrideCC base_env gnat10).override { 
+		core = (overrideCC base_env gnat10).override {
 			name="adaenv" + (if include_gprbuild then "-boot" else "");
 			initialPath = base_env.initialPath ++ maybe_gpr;
-		}; 
-		in 
+		};
+		in
 			core // { # use modified mkDerivation function
 			mkDerivation = params :
-			assert lib.asserts.assertMsg (params ? name) 
+			assert lib.asserts.assertMsg (params ? name)
 			"Attribute 'name' of derivation must be specified!"; let
 				new_params = params // {
 
@@ -60,7 +60,7 @@
 	xmlada = adaenv_boot.mkDerivation {
 		name = "xmlada";
 		version = "20.2";
-		buildInputs = [ 
+		buildInputs = [
 			gprbuild-bootstrap
 		];
 		src = xmladasrc;
@@ -103,7 +103,7 @@
 		installPhase = ''
 			./bootstrap.sh \
 			--with-xmlada="${xmladasrc}" \
-			--prefix=$prefix 
+			--prefix=$prefix
 		'';
 	};
 
@@ -150,6 +150,90 @@
 		'';
 	};
 
+	gnatcoll-dbsrc = fetchFromGitHub {
+		owner = "AdaCore";
+		repo = "gnatcoll-db";
+		rev = "b0b82d7859d7b6c4a9ade11f4dd78e46305d4716"; # version 20.2
+		sha256 = "sha256-RVD1stH/0W6pgcRGqsZsMxwNgDF4nailM8uS0f51OFI=";
+	};
+
+	gnatcoll-db = { component, extra_inputs ? [] }:
+		adaenv.mkDerivation {
+			name = "gnatcoll-db-" + component;
+			version = "20.2";
+
+			buildInputs = [
+				gprbuild
+				gnatcoll-core
+				xmlada
+			] ++ extra_inputs;
+
+			src = gnatcoll-dbsrc;
+
+			COMPONENT = component;
+
+			configurePhase = ''
+				make -C $COMPONENT prefix=$prefix BUILD=PROD setup
+			'';
+
+			buildPhase = ''
+				make -C $COMPONENT
+			'';
+
+			installPhase = ''
+				make -C $COMPONENT install
+			'';
+		};
+
+	gnatcoll-db-sql = gnatcoll-db { component = "sql"; };
+
+	gnatcoll-db-sqlite = gnatcoll-db { component = "sqlite"; extra_inputs = [ gnatcoll-db-sql which ]; };
+
+	gnatcoll-db-xref = gnatcoll-db { component = "xref"; extra_inputs = [ gnatcoll-bindings-iconv gnatcoll-db-sql gnatcoll-db-sqlite ]; };
+
+	gnatcoll-db-db2ada = gnatcoll-db { component = "gnatcoll_db2ada"; extra_inputs = [ gnatcoll-db-sql gnatcoll-db-sqlite gnatcoll-db-xref ]; };
+
+	gnatcoll-bindingssrc = fetchFromGitHub {
+		owner = "AdaCore";
+		repo = "gnatcoll-bindings";
+		rev = "ad7e9cea450f8fb8005b2b35217863dfd2edb79c"; # version 20.2
+		sha256 = "sha256-Pk1DtHPECTx9SxlCHN4cszUJqfc56fhPNe5izW10P/Q=";
+	};
+
+	gnatcoll-bindings = { component, extra_inputs ? [] }:
+		adaenv.mkDerivation {
+			name = "gnatcoll-bindings-" + component;
+			version = "20.2";
+
+			buildInputs = [
+				gnatcoll-core
+				gprbuild
+				python
+				xmlada
+			] ++ extra_inputs;
+
+			src = gnatcoll-bindingssrc;
+
+			COMPONENT = component;
+
+			patchPhase = ''
+				patchShebangs ./ + $COMPONENT + /setup.py
+			'';
+
+			buildPhase = ''
+				cd $COMPONENT && ./setup.py build --prefix=$prefix
+			'';
+
+			installPhase = ''
+				./setup.py install --prefix=$prefix
+			'';
+		};
+
+	gnatcoll-bindings-iconv = gnatcoll-bindings { component = "iconv"; };
+
+	gnatcoll-bindings-gmp = gnatcoll-bindings { component = "gmp"; extra_inputs = [ gmp ]; };
+
+	gnatcoll-bindings-python = gnatcoll-bindings { component = "python"; };
 
 	# Spark2014 tools
 	sparksrc = fetchFromGitHub {
@@ -165,7 +249,7 @@
 	spark2014 = adaenv.mkDerivation {
 		name = "SPARK2014";
 		version = "20.2";
-		buildInputs = [ 
+		buildInputs = [
 			ocaml
 			ocamlPackages.ocamlgraph
 			ocamlPackages.menhir
@@ -240,7 +324,7 @@
 			repo = "asis";
 			rev = "75eabc75aa5f7f1559524153f209601574f32b5c"; # gcc-10.1 tag
 			sha256 = "sha256-26kmPF8uksCOHc5yqJZ8DW7rS56fClff5cIMj0x5+MI=";
-			# The asis distribution must include source code that matches the 
+			# The asis distribution must include source code that matches the
 			# version of gcc used.
 		};
 		buildInputs = [
@@ -285,12 +369,218 @@
 
 		};
 
-	in 
+	gtkada_src = fetchFromGitHub {
+		owner = "AdaCore";
+		repo = "gtkada";
+		rev = "4f311f1848c2a7b45c5c97e00c5b3b01ab14797b"; # version 20.02
+		sha256 = "sha256-NElipEicNldbswvZFf5ye6wv8OOLWAsVyO0wffzLgFY=";
+	};
+
+	gtkada = adaenv.mkDerivation rec {
+		name = "gtkada";
+		version = "20.02";
+		src = gtkada_src;
+
+		buildInputs = [ gtk3 pkg-config ];
+	};
+
+	langkit_src = fetchFromGitHub {
+		owner = "AdaCore";
+		repo = "langkit";
+		rev = "d92444bda33a5d83e13a8114c5e7b7626cc15fdd"; # version 20.02
+		sha256 = "sha256-d75QTilNqchhd5uFXZRzToXpCQ+dt1HJFbf2tDK8G8E=";
+	};
+
+	langkit =  python.pkgs.buildPythonPackage rec {
+		pname = "langkit";
+		version = "0.1.dev0";
+
+		src = langkit_src;
+
+		# TODO: Use REQUIREMENTS.txt from repo
+		buildInputs = [
+			python
+			pythonPackages.docutils
+			pythonPackages.enum
+			pythonPackages.enum34
+			pythonPackages.funcy
+			pythonPackages.Mako
+			pythonPackages.pip
+			pythonPackages.pyyaml
+			pythonPackages.setuptools
+		];
+	};
+
+	libadalang_src = fetchFromGitHub {
+		owner = "AdaCore";
+		repo = "libadalang";
+		rev = "88e30708e1a41d411a33bd239497346e03f8d8a6"; # version 20.02
+		sha256 = "sha256-ZkRBNhjz7B2HSTyM2gjWT7+uRoWZsgUaBi0bTVmaQKo=";
+	};
+
+	libadalang = adaenv.mkDerivation rec {
+		name = "libadalang";
+		version = "20.02";
+		src = libadalang_src;
+
+		# TODO: Do not copy from requirements.txt
+		buildInputs = [
+			gmp
+			gnatcoll-core
+			gnatcoll-bindings-iconv
+			gnatcoll-bindings-gmp
+			langkit
+			python
+			pythonPackages.docutils
+			pythonPackages.enum34
+			pythonPackages.funcy
+			pythonPackages.Mako
+			pythonPackages.pip
+			pythonPackages.pytestrunner
+			pythonPackages.pyyaml
+			pythonPackages.setuptools
+			pythonFull
+			xmlada
+		];
+
+		dontStrip = true;
+		enableDebugging = true;
+
+		# https://github.com/AdaCore/ada_language_server/issues/217
+		buildPhase = ''
+			python ada/manage.py --library-types=static,static-pic,relocatable generate
+			python ada/manage.py --library-types=static,static-pic,relocatable build
+		'';
+
+		installPhase = ''
+			python ada/manage.py --library-types=static,static-pic,relocatable install $prefix
+		'';
+	};
+
+	libadalang_tools_src = fetchFromGitHub {
+		owner = "AdaCore";
+		repo = "libadalang-tools";
+		rev = "b377f3a62a0ed2c712076fd774858fb3e49f5a86"; # version 20.02
+		sha256 = "sha256-8o7h3Z9t8YaYMfy87mPWr9FuylGNxzrPrn0chb0he2s=";
+	};
+
+	libadalang_tools = adaenv.mkDerivation rec {
+		name = "libadalang_tools";
+		version = "20.02";
+		src = libadalang_tools_src;
+
+		buildInputs = [
+			binutils
+			gmp
+			gnatcoll-bindings-gmp
+			gnatcoll-bindings-iconv
+			gnatcoll-core
+			gprbuild
+			langkit
+			libadalang
+			which
+			xmlada
+		];
+
+		# TODO: gprbuild at some stage seems to look for in binaries a section
+		# called GPR.linker_options and append those to the linker. Without
+		# specifying the following libraries, linkage will fail with missing
+		# symbols. Maybe related:
+		# https://comp.lang.ada.narkive.com/bg0fcXsk/dynamic-link-library
+		patchPhase = ''
+			sed -i s/-j\$\(PROCESSORS\)/-j\$\(PROCESSORS\)\ -largs\ -lgnarl\ -lgnat\ -lutil\ /g Makefile
+		'';
+
+		installPhase = ''
+			make install-strip DESTDIR=$prefix
+		'';
+	};
+
+	ada_language_server_src = fetchFromGitHub {
+		owner = "AdaCore";
+		repo = "ada_language_server";
+		rev = "fe1864d1c84b57b183084f045ee49225914babf8"; # version 20.02
+		sha256 = "sha256-W5/OvR+M/iQ79GC8Z8igT1wAFZcz9WnMfvI7VgU15zI=";
+	};
+
+	ada_language_server = adaenv.mkDerivation rec {
+		name = "ada_language_server";
+		version = "20.02";
+		src = ada_language_server_src;
+
+		buildInputs = [ gprbuild gnatcoll-core xmlada libadalang
+			gmp
+			gnatcoll-bindings-gmp
+			gnatcoll-bindings-iconv
+		];
+
+		# https://www.gnu.org/prep/standards/html_node/DESTDIR.html
+		pathPhase = ''
+			sed -i s/DESTDIR=//g Makefile
+		'';
+
+		buildPhase = ''
+			make LIBRARY_TYPE=static DESTDIR=$prefix
+		'';
+
+		installPhase = ''
+			make LIBRARY_TYPE=static DESTDIR=$prefix install
+		'';
+	};
+
+	gps_src = fetchFromGitHub {
+		owner = "AdaCore";
+		repo = "gps";
+		rev = "ba40aed530e31f70d14b437b94b529a4d1f8253e"; # version 20.02
+		sha256 = "sha256-nxAWIvYrldnRHm4ukNIstBSPvDyQaH9PXu6VDWBTj1s=";
+	};
+
+	gps = adaenv.mkDerivation rec {
+		name = "gps";
+		version = "20.02";
+
+		inherit ada_language_server_src libadalang_tools_src;
+
+		src = gps_src;
+
+		buildInputs = [
+			gnatcoll-bindings-gmp
+			gnatcoll-bindings-iconv
+			gnatcoll-bindings-python
+			gnatcoll-core
+			gnatcoll-db-db2ada
+			gnatcoll-db-sql
+			gnatcoll-db-sqlite
+			gnatcoll-db-xref
+			gtk3
+			gtkada
+			libadalang
+			llvmPackages.libclang
+			pkg-config
+			python
+			pythonPackages.pygobject3
+			xmlada
+		];
+
+		patchPhase = ''
+			sed -i s/GPRBUILD_FLAGS=/GPRBUILD_FLAGS=-j0/g gnatstudio/Makefile
+		'';
+
+		configurePhase = ''
+			cp -R $ada_language_server_src ./ada_language_server
+			cp -R $libadalang_tools_src    ./laltools
+			chmod -R u+w ./ada_language_server
+			chmod -R u+w ./laltools
+			./configure --prefix=$prefix
+		'';
+	};
+
+	in
 
 	# HERE BEGINS THE THINGS THAT THIS FLAKE PROVIDES:
 	{
 		# Derivations (create an environment with `nix shell`)
-		inherit xmlada gnatcoll-core asis gnat_util aunit;
+		inherit xmlada gnatcoll-core asis gnat_util aunit gps;
 		gpr = gprbuild;
 		gnat = adaenv.cc;
 		spark = spark2014;
@@ -299,12 +589,12 @@
 		# Notes on nix shell and nix develop:
 		# "nix develop" will open a shell environment that simulates the build environment
 		# for the specified derivation, with default being devShell if it is defined, and
-		# defaultPackage if it is not.  If the the derivation has a shellHook, it will be 
-		# run.  However, buildEnv is not allowed to have a shellHook for some reason.  The 
+		# defaultPackage if it is not.  If the the derivation has a shellHook, it will be
+		# run.  However, buildEnv is not allowed to have a shellHook for some reason.  The
 		# derivation can be a buildable package (including buildEnv) or not like mkShell.
 		#
 		# "nix shell" will open a shell environment with the specified *packages* installed
-		# on the PATH. The default is defaultPackage.  devShell is not used. shellHooks will 
+		# on the PATH. The default is defaultPackage.  devShell is not used. shellHooks will
 		# not be run. A mkShell invocation cannot be installed, so it cannot be used with
 		# nix shell.
 
@@ -317,15 +607,16 @@
 				self.spark
 				self.asis
 				self.alr
+				self.gps
 			];
 		};
 
 		packages.x86_64-linux = {
-			inherit (self) xmlada gnatcoll-core gnat gpr spark adaspark gnat_util aunit asis;
+			inherit (self) xmlada gnatcoll-core gnat gpr spark adaspark gnat_util aunit asis gps;
 		};
 		defaultPackage.x86_64-linux = self.packages.x86_64-linux.adaspark;
-		devShell.x86_64-linux = mkShell { 
-			buildInputs = [self.adaspark]; 
+		devShell.x86_64-linux = mkShell {
+			buildInputs = [self.adaspark];
 			LIBRARY_PATH=self.gpr.LIBRARY_PATH; # pull out any LIBRARY_PATH from a adaenv derivation
 		};
 
